@@ -1,2 +1,4 @@
-# metheorology-data
-Back-end project with INMET data served through an API
+# Meteorology Data (INMET)
+
+Python project for ingestion, normalization and disponibility of INMET (Brazil National Institute of Methereology) data through an API.
+

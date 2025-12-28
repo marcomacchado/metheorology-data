@@ -1,0 +1,11 @@
+# Ignore dataset files
+data/
+*.zip
+*.csv
+
+# Ignore temporary files
+__pycache__/
+*.tmp
+.venv/
+venv
+
