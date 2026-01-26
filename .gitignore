@@ -6,6 +6,20 @@ data/
 # Ignore temporary files
 __pycache__/
 *.tmp
+
+# Ignore virtual environment directories
 .venv/
 venv
 
+# Ignore environment/secret files 
+.env
+
+# IDE specific files
+.vscode/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Git guide file
+project_git_guide.md
