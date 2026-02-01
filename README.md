@@ -1,99 +1,96 @@
-# Meteorology Data (INMET)
+# INMET Historical Weather Data Pipeline
 
-Python project for ingestion, normalization and disponibility of INMET (Brazil National Institute of Methereology) automic stations data through an API.
+> An ETL pipeline and REST API to ingest, normalize, and serve historical meteorological data from the Brazilian National Institute of Meteorology (INMET).
 
-## 1. Project Goal
+## 📖 Project Overview
 
-Build a back-end service that:
+This project aims to solve the challenge of processing fragmented and heterogeneous weather data files provided by INMET. It builds a robust backend infrastructure to consolidate decades of hourly measurements from automatic stations into a structured Relational Database, exposing this data via a clean HTTP API for analysis and visualization.
 
-- Imports historical meteorological data from INMET .csv files into a relational database.
-- Cleans and normalizes the data (types, missing values, invalid sentinel values like '-9999').
-- Exposes an HTTP API to query station metadata and time series observations with filters and simples aggregations.
+**Key Features:**
+* **Data Ingestion:** Automated parsing of raw CSV files (2000-2025) handling inconsistent headers, date formats, and numeric delimiters.
+* **Normalization:** Type-safe conversion of meteorological variables (Temperature, Humidity, Pressure, etc.) to standard units.
+* **Persistence:** High-performance storage using PostgreSQL for time-series data.
+* **Access:** RESTful API (FastAPI) for querying station metadata and observation history.
 
-## 2. Data Sources
+---
 
-- **Station Catalog:**
-    - CatalogogEstaçõesAutomáticas.csv
-        - Contains metadata about meteorological stations (code, name, state, status, etc.).
+## 🛠️ Technology Stack
 
-- **Historical Data:**
-    - Yearly _.zip_ files from years 2000-2025.
-    - Each compressed file contains CSV files with hourly observations for each active station in that year.
-    - The files include a metadata block followed by a header row and hourly measurements.
+* **Language:** Python 3.10+
+* **Database:** PostgreSQL 15 (planned)
+* **Infrastructure:** Docker & Docker Compose
+* **API Framework:** FastAPI (planned)
+* **Data Source:** [INMET Portal](https://portal.inmet.gov.br/dadoshistoricos)
 
-- Known data issues:
-    - Some numeric fields use comma as decimal separator (e.g. `943,3`).
-    - Some records have invalid or missing values represented as `-9999`.
-    - Older and newer files may have slightly different header labels and date/time formats which must be normalized during ingestion.
+---
 
-## 3. Planned Architecture (High-level)
-- **Language:** Python 3.10.12
-- **Database:** PostgreSQL (relational, for time series and station metadata).
-- **API:** FastAPI (HTTP endpoints with automatic documentation via OpenAPI/Swagger).
-- **Environment:** WSL2, with support for running via Docker in the future.
+## 📂 Data Structure
 
-### Core Components
+The project handles two main types of data:
 
-1. **Ingestion/ETL**
-    - Read station catalog CSV and load station metadata into the database.
-    - Read yearly station CSV files.
-    - Parse dates and times, converte to a 'timestamp' in UTC.
-    - Convert numeric fields (handling comma decimal separators).
-    - Replace invalid sentinel values (e.g '-9999') with 'NULL'.
-    - Enforce uniqueness per (station_code, timestamp).
+1.  **Station Metadata (`stations`):**
+    * Source: `CatalogoEstaçõesAutomáticas.csv`
+    * Contains: Station Name, WMO Code (e.g., A001), Latitude, Longitude, Altitude, Operation Status.
 
-2. **Database Model**
-    - *stations*
-        - station_code (PK)
-        - name
-        - state
-        - latitude
-        - longitude
-        - altitude
-        - status (operational, inactive, etc.)
-        - operation_start_date
-    
-    - *observations*
-        - id (PK)
-        - station_code (FK -> stations)
-        - timestamp_utc (datetime representing thhe measurement date and hour in UTC)
-        - temperature_air (°C)
-        - humidity_air (%)
-        - pressure (mB)
-        - preciptation (mm)
-        - wind_speed (m/s)
-        - *other fields in .csv files*
+2.  **Hourly Observations (`observations`):**
+    * Source: Yearly `.zip` archives containing daily CSVs per station.
+    * Volume: Millions of records from year 2000 to present.
+    * **Challenge:** The raw files contain varying schemas, encoding (`Latin-1` vs `UTF-8`), and floating-point separators (comma vs dot) which this pipeline normalizes.
 
-3. **API Endpoints**
+---
 
-- GET /stations
-    - List all stations, with optional filters like 'state' or 'status'
+## 🚀 Development Status & Roadmap
 
-- GET /stations/{code}
-    - Get the metadata for a single station
+The project is currently in the **Infrastructure & Ingestion** phase.
 
-- GET /observations
-    - Query observations with filters:
-        - station_code
-        - start (datetime)
-        - end (datetime)
-    - Pagination support
+### Phase 1: Core Logic & Parsing (✅ Completed)
+- [x] **Exploratory Data Analysis:** Identified header variations and date/time patterns across 20+ years of files.
+- [x] **Parser Implementation:** Created robust logic to convert raw CSV rows into typed Python dictionaries.
+- [x] **Unit Conversion:** Handling of sentinel values (`-9999` to `None`) and decimal normalization.
 
-- GET /observations/daily
-    - Aggregated daily statistics (min/avg/max temperature, total precipitation, etc.) for a station and period
+### Phase 2: Infrastructure & Database (🚧 In Progress)
+- [ ] **Containerization:** Setup `docker-compose` for PostgreSQL.
+- [ ] **Schema Definition:** Design SQL tables for `stations` and `observations`.
+- [ ] **Migration System:** Setup database version control (likely via Alembic or raw SQL).
 
-## 4. Roadmap
+### Phase 3: Ingestion Pipeline (📅 Planned)
+- [ ] **Catalog Loader:** Script to populate the `stations` table.
+- [ ] **Bulk Ingestion:** Efficiently process all `.zip` files and insert data into the database.
+- [ ] **Error Handling:** Logging system for corrupted or malformed files.
 
-Planned implementation step (high-level):
+### Phase 4: API & Distribution (📅 Planned)
+- [ ] **API Setup:** Basic FastAPI skeleton.
+- [ ] **Endpoints:** `/stations` (list/filter) and `/observations` (time-series query).
+- [ ] **Documentation:** Swagger/OpenAPI auto-generated docs.
 
-1. Define project structure and basic Python environment (dependencies, 'requirements.txt').
-2. Implement station catalog parser (load `CatalogoEstaçõesAutomáticas.csv`, inspect columns and prepare data to be inserted into the `stations` table).
-3. Define database schema and create initial migration.
-4. Implement ingestion pipeline for a single station and a single year 
-5. Generalize ingestion to process all years and stations
-6. Implement API endpoints for station and observations.
-7. Add basic tests (unit + integration)
-8. Containerize the application with Docker and document how to run it locally.
+---
 
-## 5. Ho to Run (TO BE COMPLETED)
-> This section will describe how to set up the virtual environment, install dependencies, configure the database and run the ingestion scripts and API.
+## 💻 Getting Started
+
+### Prerequisites
+* Python 3.10 or higher
+* Docker & Docker Compose (for the database layer)
+
+### Installation
+
+1.  **Clone the repository:**
+    ```bash
+    git clone [https://github.com/marcomacchado/metheorology-data.git](https://github.com/marcomacchado/metheorology-data.git)
+    cd metheorology-data
+    ```
+
+2.  **Set up the environment (Example):**
+    ```bash
+    python -m venv .venv
+    source .venv/bin/activate  # Linux/Mac
+    # .venv\Scripts\activate   # Windows
+    pip install -r requirements.txt
+    ```
+
+3.  **Run the demo parser:**
+    To verify the parsing logic on a sample file:
+    ```bash
+    python -m scripts.demo_parse_single_file
+    ```
+
+---
